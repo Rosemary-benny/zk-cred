@@ -22,12 +22,19 @@
     "bootstrap": "^5.2.3",
     "ipfs-http-client": "^60.0.0",
     "react": "^18.2.0",
+    "react-bootstrap": "^2.7.4",
     "react-dom": "^18.2.0",
+    "react-scripts": "^5.0.1",
+    "semantic-ui-css": "^2.5.0",
+    "semantic-ui-react": "^2.1.4",
     "truffle-hdwallet-provider": "^1.0.17",
     "web3": "^1.9.0"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^2.0.2",
     "hardhat": "^2.14.0"
+  },
+  "directories": {
+    "test": "test"
   }
 }
