@@ -23,10 +23,20 @@ async function main() {
     )}ETH and unlock timestamp ${unlockTime} deployed to ${lock.address}`
   );
 }
+async function main() {
+  const [deployer] = await ethers.getSigners();
 
-// We recommend this pattern to be able to use async/await everywhere
-// and properly handle errors.
-main().catch((error) => {
-  console.error(error);
-  process.exitCode = 1;
-});
+  console.log("Deploying contracts with the account:", deployer.address);
+
+  const AgeVerification = await ethers.getContractFactory("AgeVerification");
+  const ageVerification = await AgeVerification.deploy();
+
+  console.log("AgeVerification contract address:", ageVerification.address);
+}
+
+main()
+  .then(() => process.exit(0))
+  .catch(error => {
+    console.error(error);
+    process.exit(1);
+  });
