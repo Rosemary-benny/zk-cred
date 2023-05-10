@@ -1,93 +1,61 @@
-import React, { useState } from "react";
-import "./App.css";
-import VerifierContract from "./contracts/Verifier.json";
-import NFTContract from "./contracts/NFT.json";
-import getWeb3 from "./getWeb3";
+// Import required libraries
+import React, { useState } from 'react';
+import Web3 from 'web3';
+import { AgeVerification } from './contracts/AgeVerification.sol';
+import { nftContractABI } from './contracts/NFTContractABI.js';
+import { setupZKProof } from './zkp.ts';
 
 function App() {
-  const [web3, setWeb3] = useState(null);
-  const [accounts, setAccounts] = useState([]);
-  const [verifierContract, setVerifierContract] = useState(null);
-  const [nftContract, setNFTContract] = useState(null);
-  const [age, setAge] = useState("");
-  const [verified, setVerified] = useState(false);
-  const [nftMinted, setNFTMinted] = useState(false);
+  // Set initial state values
+  const [age, setAge] = useState('');
+  const [isVerified, setIsVerified] = useState(false);
+  const [nftCreated, setNFTCreated] = useState(false);
+  const [nftImageUrl, setNFTImageUrl] = useState('');
+  
+  // Initialize Web3 and smart contract variables
+  const web3 = new Web3(Web3.givenProvider);
+  const ageVerificationContract = new web3.eth.Contract(AgeVerification.abi, AgeVerification.address);
+  const nftContract = new web3.eth.Contract(nftContractABI, '[NFT_CONTRACT_ADDRESS]'); // Replace with your own NFT contract address
+  
+  // Handle age verification form submission
+  const handleSubmit = async (event) => {
+    event.preventDefault();
 
-  const connectToBlockchain = async () => {
-    try {
-      const web3 = await getWeb3();
-      const accounts = await web3.eth.getAccounts();
-      const networkId = await web3.eth.net.getId();
+    // Generate zero-knowledge proof
+    const { proof, publicSignals } = await setupZKProof(parseInt(age, 10));
 
-      const verifierContract = new web3.eth.Contract(
-        VerifierContract.abi,
-        VerifierContract.networks[networkId].address
-      );
-      const nftContract = new web3.eth.Contract(
-        NFTContract.abi,
-        NFTContract.networks[networkId].address
-      );
-
-      setWeb3(web3);
-      setAccounts(accounts);
-      setVerifierContract(verifierContract);
-      setNFTContract(nftContract);
-    } catch (error) {
-      console.error(error);
+    // Call age verification smart contract with proof and public signals
+    const verified = await ageVerificationContract.methods.verifyAgeWithProof(proof, publicSignals).call();
+    setIsVerified(verified);
+    if (verified) {
+      // Create NFT if age is verified
+      await createNFT();
     }
   };
 
-  const verifyAge = async () => {
-    try {
-      const result = await verifierContract.methods.verifyAge(age).call();
-      setVerified(result);
-    } catch (error) {
-      console.error(error);
-    }
+  // Create NFT using the verified age as metadata
+  const createNFT = async () => {
+    const accounts = await web3.eth.requestAccounts();
+    const metadata = {
+      'age': age,
+    };
+    const tokenId = await nftContract.methods.createToken(accounts[0], JSON.stringify(metadata), nftImageUrl).send({ from: accounts[0] });
+    setNFTCreated(true);
   };
 
-  const mintNFT = async () => {
-    try {
-      const result = await nftContract.methods.mint(accounts[0]).send({
-        from: accounts[0],
-      });
-      setNFTMinted(true);
-    } catch (error) {
-      console.error(error);
-    }
-  };
-
+  // Render age verification form and NFT creation result
   return (
-    <div className="App">
-      <header className="App-header">
-        <h1>Age Verification</h1>
-        <p>Connect to Metamask and enter your age to verify</p>
-        <div>
-          <button onClick={connectToBlockchain}>Connect to Blockchain</button>
-        </div>
-        {web3 && (
-          <>
-            <div>
-              <input
-                type="number"
-                placeholder="Enter your age"
-                value={age}
-                onChange={(e) => setAge(e.target.value)}
-              />
-              <button onClick={verifyAge}>Verify Age</button>
-            </div>
-            {verified && (
-              <>
-                <p>Congratulations! You are verified to be over 18 years old.</p>
-                {!nftMinted && (
-                  <button onClick={mintNFT}>Mint NFT</button>
-                )}
-                {nftMinted && <p>You have been minted an NFT!</p>}
-              </>
-            )}
-          </>
-        )}
-      </header>
+    <div>
+      <form onSubmit={handleSubmit}>
+        <label>
+          Age:
+          <input type="number" value={age} onChange={e => setAge(e.target.value)} />
+        </label>
+        <br />
+        <button type="submit">Verify Age</button>
+      </form>
+      {isVerified && <p>Your age has been verified!</p>}
+      {nftCreated && <p>Your NFT has been created!</p>}
     </div>
   );
 }
