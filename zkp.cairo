@@ -1,7 +1,15 @@
 const { Cairo } = require("@cairo-lang/core");
 const { HttpProvider } = require("@cairo-lang/http-provider");
 const snarkjs = require("snarkjs");
+from stdlib.cairo.lang.cairo import *
 
+type CircuitInputs struct {
+  age : public field(64)
+}
+
+type CircuitOutputs struct {
+  verified : public field(1)
+}
 // Define the URL of the Cairo blockchain node
 const nodeUrl = "http://localhost:8843";
 
